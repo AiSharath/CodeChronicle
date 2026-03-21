@@ -21,6 +21,7 @@ app.post("/api/run", (req, res) => {
       `docker run --rm --network none --memory="64m" --cpus="0.5" -v "${tmpFile}:/app/user_code.js" debugger-sandbox`,
       { timeout: 5000 },
     );
+    console.log(instrumented);
 
     fs.unlinkSync(tmpFile);
 
