@@ -5,6 +5,7 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 const cors = require("cors");
+const { rateLimit } = require("express-rate-limit");
 
 const PORT = Number(process.env.PORT || 3000);
 const NODE_ENV = process.env.NODE_ENV || "development";
@@ -38,6 +39,14 @@ app.use(
     },
   }),
 );
+
+const executionRateLimit = rateLimit({
+  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS || 60_000),
+  limit: Number(process.env.RATE_LIMIT_MAX_REQUESTS || 60),
+  standardHeaders: "draft-8",
+  legacyHeaders: false,
+  message: { error: "Too many requests" },
+});
 
 function runInDocker(tmpFile) {
   return execFileSync(
@@ -77,7 +86,7 @@ app.get("/api/health", (_req, res) => {
   res.status(200).json({ status: "ok", mode: RUNNER_MODE, environment: NODE_ENV });
 });
 
-app.post("/api/run", (req, res) => {
+app.post("/api/run", executionRateLimit, (req, res) => {
   let tempDir;
 
   try {

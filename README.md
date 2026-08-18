@@ -31,6 +31,8 @@ Backend supports the following environment variables:
 - `MAX_CODE_SIZE` (default: `50000` bytes)
 - `EXEC_TIMEOUT_MS` (default: `5000`)
 - `EXEC_MAX_BUFFER` (default: `1048576` bytes)
+- `RATE_LIMIT_WINDOW_MS` (default: `60000`)
+- `RATE_LIMIT_MAX_REQUESTS` (default: `60`)
 
 ## Local development
 ### Backend
