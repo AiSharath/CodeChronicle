@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
 
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/, '');
+
 function App() {
   const [code, setCode] = useState('let x = 5;\nlet y = x + 2;');
   const [steps, setSteps] = useState([]);
@@ -11,6 +13,8 @@ function App() {
   const editorRef = useRef(null);
   const monacoRef = useRef(null);
   const decorationsRef = useRef([]);
+
+  const current = steps[currentStep];
 
   function handlePrev() {
     setCurrentStep(prev => Math.max(0, prev - 1));
@@ -40,31 +44,35 @@ function App() {
         }
       ]
     );
-  }, [currentStep]);
+  }, [current]);
 
   async function handleRun() {
     setError(null);
     setSteps([]);
+    setCurrentStep(0);
     setLoading(true);
 
-    const response = await fetch('http://localhost:3000/api/run', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code })
-    });
+    try {
+      const response = await fetch(`${API_BASE_URL}/run`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (data.error) {
-      setError(data.error);
-      return;
+      if (!response.ok || data.error) {
+        setError(data.error || 'Runtime error occurred');
+        return;
+      }
+
+      setSteps(data.steps || []);
+    } catch {
+      setError('Unable to reach backend service');
+    } finally {
+      setLoading(false);
     }
-
-    setSteps(data.steps);
-    setCurrentStep(0);
   }
-
-  const current = steps[currentStep];
 
   return (
     <div>
@@ -77,7 +85,7 @@ function App() {
             language="javascript"
             value={code}
             theme="vs-dark"
-            onChange={(value) => setCode(value)}
+            onChange={(value) => setCode(value || '')}
             onMount={handleEditorMount}
           />
         </div>
@@ -97,8 +105,8 @@ function App() {
         <button className="run-button" onClick={handleRun} disabled={loading}>
           {loading ? '⏳ Running...' : '▶ Run'}
         </button>
-        <button className="run-button" onClick={handlePrev}>◀</button>
-        <button className="run-button" onClick={handleNext}>▶</button>
+        <button className="run-button" onClick={handlePrev} disabled={loading || steps.length === 0}>◀</button>
+        <button className="run-button" onClick={handleNext} disabled={loading || steps.length === 0}>▶</button>
         {steps.length > 0 && (
           <>
             <input
@@ -118,7 +126,7 @@ function App() {
 
       {error && (
         <div className="error-panel">
-          ⚠ Runtime error in your code
+          ⚠ {error}
         </div>
       )}
     </div>
